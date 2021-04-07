@@ -1,4 +1,6 @@
 var db = require("./database.js")
+var md5 = require("md5")
+var bodyParser = require("body-parser");
 
 exports.getUsers = function(req, res) {
     var sql = "select * from user"
@@ -16,18 +18,18 @@ exports.getUsers = function(req, res) {
 };
 
 exports.getUsersById = function(req, res) {
-  var sql = "select * from user where id = ?"
-  var params = [req.params.id]
-  db.get(sql, params, (err, row) => {
-      if (err) {
-        res.status(400).json({"error":err.message});
-        return;
-      }
-      res.json({
-          "message":"success",
-          "data":row
-      })
-    });
+    var sql = "select * from user where id = ?"
+    var params = [req.params.id]
+    db.get(sql, params, (err, row) => {
+        if (err) {
+          res.status(400).json({"error":err.message});
+          return;
+        }
+        res.json({
+            "message":"success",
+            "data":row
+        })
+      });
 };
 
 exports.postUser = function(req, res) {
@@ -62,3 +64,30 @@ exports.postUser = function(req, res) {
       })
   });
 };
+
+exports.patchUser = function(req,res){
+
+    var data = {
+        name: req.body.name,
+        email: req.body.email,
+        password : req.body.password ? md5(req.body.password) : undefined
+    }
+    db.run(
+        `UPDATE user set 
+           name = coalesce(?,name), 
+           email = COALESCE(?,email), 
+           password = coalesce(?,password) 
+           WHERE id = ?`,
+        [data.name, data.email, data.password, req.params.id],
+        (err, result) => {
+            console.log(result);
+            if (err){
+                res.status(400).json({"error": res.message})
+                return;
+            }
+            res.json({
+                message: "success",
+                data: data
+            })
+    });
+}
